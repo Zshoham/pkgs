@@ -32,9 +32,28 @@ in
     test "$($bat --color=always file.py)" = "$($bat --color=always --theme='Catppuccin Mocha' file.py)"
   '';
 
+  gdb = check "gdb" ''
+    # the init file in the home directory is ignored, gef has the same config
+    mkdir -p ~/.config/gdb
+    echo 'set print asm-demangle off' > ~/.config/gdb/gdbinit
+    for gdb in ${packages.gdb}/bin/gdb ${packages.gdb}/bin/gef; do
+      $gdb -batch -ex 'show print asm-demangle' | grep -q ' on\.$'
+      $gdb -batch -ex 'show history filename' | grep -qF "\"$HOME/.local/share/gdb_history\""
+    done
+    ${packages.gdb}/bin/gef -batch -ex 'gef help' | grep -q 'GEF - GDB Enhanced Features'
+    # gef's settings are saved to and restored from the XDG config directory
+    ${packages.gdb}/bin/gef -batch -ex 'gef config context.nb_lines_code 3' -ex 'gef save'
+    grep -q 'nb_lines_code = 3' ~/.config/gef.rc
+    test "$(${packages.gdb}/bin/gef -batch -ex 'python print(gef.config["context.nb_lines_code"])' | tail -1)" = 3
+    mkdir xdg
+    XDG_CONFIG_HOME=$PWD/xdg ${packages.gdb}/bin/gef -batch -ex 'gef save'
+    test -f xdg/gef.rc
+  '';
+
   git = check "git" ''
     git=${lib.getExe packages.git}
-    test "$($git config core.pager)" = delta
+    # the pager is delta, told to read the wrapper's config
+    $git config core.pager | grep -q '^delta --config '
     $git -c 'alias.has-delta=!command -v delta' has-delta
     # delta knows the syntax theme
     echo a > a; echo b > b
