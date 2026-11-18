@@ -22,9 +22,8 @@
       pager = ''delta --config "$GIT_CONFIG_GLOBAL"'';
     };
 
-    # the theme isn't built into delta
-    include.path = "${./delta-catppuccin-mocha.gitconfig}";
-    delta.features = "catppuccin-mocha";
+    # the theme built into delta (and bat)
+    delta.syntax-theme = "Catppuccin Mocha";
 
     alias.sdiff = "-c delta.side-by-side=true diff";
 
